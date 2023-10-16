@@ -1,7 +1,6 @@
 (* MP1 2023/2024 - dpll.ml *)
 
 open List
-open Dimacs
 
 (* fonctions utilitaires *)
 (* ----------------------------------------------------------- *)
