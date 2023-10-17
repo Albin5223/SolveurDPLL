@@ -47,10 +47,6 @@ let coloriage = [
 
 (* ----------------------------------------------------------- *)
 
-(* simplifie : int -> int list list -> int list list 
-   applique la simplification de l'ensemble des clauses en mettant
-   le littéral l à vrai *)
-
 (*Cette fonction supprime tous les elt de la liste list*)
 let remove list elt = 
   let rec aux l e acc =
@@ -59,9 +55,14 @@ let remove list elt =
     |x::xl -> if x = elt then aux xl e acc else aux xl e acc@[x]
   in aux list elt []
 
-(* Pour simplifier ; si le littéral l est vrai et qu'elle se trouve dans une clause de l'ensemble alors on supprime la clause
+(* simplifie : int -> int list list -> int list list 
+   applique la simplification de l'ensemble des clauses en mettant
+   le littéral l à vrai.
+
+   Explication :
+   Si le littéral l est vrai et qu'elle se trouve dans une clause de l'ensemble alors on supprime la clause
    car celle-ci sera égale à a, si ca -l se trouve dans une clause de l'ensemble alors on supprime le littéral de la clause 
-   sinon on ne fait rien. On répéte cette action pour l'ensemble des clause*)
+   sinon on ne fait rien. On répéte cette action pour l'ensemble des clause *)
 let simplifie (l:int) (clauses:int list list) : int list list =
   let rec aux l clauses (acc:int list list) = 
     match clauses with 
@@ -97,11 +98,7 @@ let rec solveur_split clauses interpretation =
 (* solveur dpll récursif *)
 (* ----------------------------------------------------------- *)
 
-(* pur : int list list -> int
-    - si `clauses' contient au moins un littéral pur, retourne
-      ce littéral ;
-    - sinon, lève une exception `Failure "pas de littéral pur"' *)
-
+(*
 (*Cette fonction recupere chaque littéral dans une clause, la liste renvoyé ne contient aucun doublon*)
 let recupererLitterauxInClause l = 
   let rec aux (liste:int list) (acc:int list) =
@@ -128,27 +125,48 @@ let recupererLitteralUnitaire clauses =
                 else recuppererLitterauxNonUnitaire xl acc@[x]
     in recuppererLitterauxNonUnitaire clauses []
 
-(* Cette fonction renvoie le premier litteral unitaire si il existe sinon il renvoie un erreur*)
-let pur clauses = 
-  let liste = recupererLitteralUnitaire clauses in if List.length liste = 0 then raise (Failure "Not_found") else List.hd liste
+  *)
 
-
+(* pur : int list list -> int
+    - si `clauses' contient au moins un littéral pur, retourne "Some" de ce littéral ;
+    - sinon, None *)
+let pur (clauses : int list list) : int option =
+  let rec aux l acc =
+    match l with 
+    | [] -> None
+    | x::x1 -> 
+      if not(List.mem(x) acc || List.mem (-x) acc) && not(List.mem(-x) x1)
+        then (Some x)
+        else aux x1 (x::acc)
   
+  in aux (List.flatten(clauses)) [] 
                 
 (* unitaire : int list list -> int
     - si `clauses' contient au moins une clause unitaire, retourne
-      le littéral de cette clause unitaire ;
-    - sinon, lève une exception `Not_found' *)
-let rec unitaire clauses =
+      "Some" du littéral de cette clause unitaire ;
+    - sinon, None *)
+let rec unitaire (clauses : int list list) : int option =
   match clauses with 
-  |[] -> raise (Failure "Not_found")
-  |x::xl -> if List.length x = 1 
-            then List.hd x else unitaire xl
+  |[] -> None
+  |x::xl -> if List.length x = 1 then Some (List.hd x) else unitaire xl
 
 (* solveur_dpll_rec : int list list -> int list -> int list option *)
-let rec solveur_dpll_rec clauses interpretation =
-  (* à compléter *)
-  None
+let rec solveur_dpll_rec (clauses : int list list) (interpretation : int list) : int list option =
+  (* l'ensemble vide de clauses est satisfiable *)
+  if clauses = [] then Some interpretation else
+  (* un clause vide est insatisfiable *)
+  if mem [] clauses then None else
+    match unitaire clauses with
+    | Some u -> solveur_dpll_rec (simplifie u clauses) (u :: interpretation)
+    | None ->
+      match pur clauses with
+      | Some p -> solveur_dpll_rec (simplifie p clauses) (p :: interpretation)
+      | None -> 
+        let l = List.hd (List.hd clauses) in
+        let branche = solveur_dpll_rec (simplifie l clauses) (l :: interpretation) in
+        match branche with
+        | None -> solveur_dpll_rec (simplifie (-l) clauses) ((-l) :: interpretation)
+        | _ -> branche
 
 
 (* tests *)
