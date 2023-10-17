@@ -101,19 +101,18 @@ let rec solveur_split clauses interpretation =
     - si `clauses' contient au moins un littéral pur, retourne
       ce littéral ;
     - sinon, lève une exception `Failure "pas de littéral pur"' *)
-let rec pur clauses =
-  match clauses with 
-  |[] -> raise (Failure "Pas de littéral pur")
-  |x::xl -> if List.length x = 1 
-            then List.hd x else pur xl
+let rec pur clauses = 0
+  
                 
 (* unitaire : int list list -> int
     - si `clauses' contient au moins une clause unitaire, retourne
       le littéral de cette clause unitaire ;
     - sinon, lève une exception `Not_found' *)
 let unitaire clauses =
-  (* à compléter *)
-  0
+  match clauses with 
+  |[] -> raise (Failure "Pas de littéral pur")
+  |x::xl -> if List.length x = 1 
+            then List.hd x else pur xl
 
 (* solveur_dpll_rec : int list list -> int list -> int list option *)
 let rec solveur_dpll_rec clauses interpretation =
