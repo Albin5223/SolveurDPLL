@@ -50,9 +50,29 @@ let coloriage = [
 (* simplifie : int -> int list list -> int list list 
    applique la simplification de l'ensemble des clauses en mettant
    le littéral l à vrai *)
-let simplifie l clauses =
-  (* à compléter *)
-  []
+
+(*Cette fonction supprime tous les elt de la liste list*)
+let remove list elt = 
+  let rec aux l e acc =
+    match l with 
+    |[] -> acc
+    |x::xl -> if x = elt then aux xl e acc else aux xl e acc@[x]
+  in aux list elt []
+
+(* Pour simplifier ; si le littéral l est vrai et qu'elle se trouve dans une clause de l'ensemble alors on supprime la clause
+   car celle-ci sera égale à a, si ca -l se trouve dans une clause de l'ensemble alors on supprime le littéral de la clause 
+   sinon on ne fait rien. On répéte cette action pour l'ensemble des clause*)
+let simplifie (l:int) (clauses:int list list) : int list list =
+  let rec aux l clauses (acc:int list list) = 
+    match clauses with 
+    |[] -> acc
+    |x::xl -> let negate = -1*l in 
+              if List.mem l x
+                then aux l xl acc 
+                else if List.mem negate x  
+                    then aux l xl (acc@[remove x l]) 
+                    else aux l xl acc@[x]
+    in aux l clauses []
 
 (* solveur_split : int list list -> int list -> int list option
    exemple d'utilisation de `simplifie' *)
@@ -81,10 +101,12 @@ let rec solveur_split clauses interpretation =
     - si `clauses' contient au moins un littéral pur, retourne
       ce littéral ;
     - sinon, lève une exception `Failure "pas de littéral pur"' *)
-let pur clauses =
-  (* à compléter *)
-  0
-
+let rec pur clauses =
+  match clauses with 
+  |[] -> raise (Failure "Pas de littéral pur")
+  |x::xl -> if List.length x = 1 
+            then List.hd x else pur xl
+                
 (* unitaire : int list list -> int
     - si `clauses' contient au moins une clause unitaire, retourne
       le littéral de cette clause unitaire ;
