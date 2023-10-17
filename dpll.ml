@@ -101,18 +101,49 @@ let rec solveur_split clauses interpretation =
     - si `clauses' contient au moins un littéral pur, retourne
       ce littéral ;
     - sinon, lève une exception `Failure "pas de littéral pur"' *)
-let rec pur clauses = 0
+
+(*Cette fonction recupere chaque littéral dans une clause, la liste renvoyé ne contient aucun doublon*)
+let recupererLitterauxInClause l = 
+  let rec aux (liste:int list) (acc:int list) =
+    match liste with 
+    |[] -> acc
+    |x::xl -> if List.mem x acc then aux xl acc else aux xl acc@[x]
+  in aux l []
+
+(*Cette fonction recupere tous les littéraux de l'ensemble de clause, la liste renvoyé ne contient aucun doublon*)
+let recupererLitteral clauses =
+  let rec aux clauses acc = 
+    match clauses with 
+    |[] -> acc
+    |x::xl -> aux xl acc@recupererLitterauxInClause x
+  in aux clauses []
+
+(* Cette fonction renvoie un liste l ,tel que pour chaque e appartenant à l alors -e n'appartient pas à l*)
+let recupererLitteralUnitaire clauses =
+  let rec recuppererLitterauxNonUnitaire liste acc =
+    match liste with
+    |[] -> acc 
+    |x::xl -> if List.mem x clauses && List.mem (-1*x) clauses
+                then recuppererLitterauxNonUnitaire xl acc 
+                else recuppererLitterauxNonUnitaire xl acc@[x]
+    in recuppererLitterauxNonUnitaire clauses []
+
+(* Cette fonction renvoie le premier litteral unitaire si il existe sinon il renvoie un erreur*)
+let pur clauses = 
+  let liste = recupererLitteralUnitaire clauses in if List.length liste = 0 then raise (Failure "Not_found") else List.hd liste
+
+
   
                 
 (* unitaire : int list list -> int
     - si `clauses' contient au moins une clause unitaire, retourne
       le littéral de cette clause unitaire ;
     - sinon, lève une exception `Not_found' *)
-let unitaire clauses =
+let rec unitaire clauses =
   match clauses with 
-  |[] -> raise (Failure "Pas de littéral pur")
+  |[] -> raise (Failure "Not_found")
   |x::xl -> if List.length x = 1 
-            then List.hd x else pur xl
+            then List.hd x else unitaire xl
 
 (* solveur_dpll_rec : int list list -> int list -> int list option *)
 let rec solveur_dpll_rec clauses interpretation =
