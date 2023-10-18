@@ -131,15 +131,15 @@ let recupererLitteralUnitaire clauses =
     - si `clauses' contient au moins un littéral pur, retourne "Some" de ce littéral ;
     - sinon, None *)
 let pur (clauses : int list list) : int option =
-  let rec aux l acc =
+  let rec aux l =
     match l with 
     | [] -> None
     | x::x1 -> 
-      if not(List.mem(x) acc || List.mem (-x) acc) && not(List.mem(-x) x1)
+      if not (List.mem (-x) x1)
         then (Some x)
-        else aux x1 (x::acc)
+        else aux x1
   
-  in aux (List.flatten(clauses)) [] 
+  in aux (List.flatten(clauses))
                 
 (* unitaire : int list list -> int
     - si `clauses' contient au moins une clause unitaire, retourne
@@ -155,7 +155,7 @@ let rec solveur_dpll_rec (clauses : int list list) (interpretation : int list) :
   (* l'ensemble vide de clauses est satisfiable *)
   if clauses = [] then Some interpretation else
   (* un clause vide est insatisfiable *)
-  if mem [] clauses then None else
+  if List.mem [] clauses then None else
     match unitaire clauses with
     | Some u -> solveur_dpll_rec (simplifie u clauses) (u :: interpretation)
     | None ->
