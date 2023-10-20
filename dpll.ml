@@ -13,11 +13,12 @@ open List
 let filter_map filter list =
   let rec aux list ret =
     match list with
-    | []   -> ret
-    | h::t -> match (filter h) with
-      | None   -> aux t ret
-      | Some e -> aux t (e::ret)
-  in aux list []
+    | [] -> ret   (* Si on arrive à la fin de la liste, on renvoie l'accumulateur "ret" *)
+    | h::t ->
+      match (filter h) with   (* Sinon, on match la fonction filter avec l'élément de la liste *)
+      | None -> aux t ret     (* Si filter renvoie None, on continue avec la suite *)
+      | Some e -> aux t (e::ret)  (* S'il y a un resultat, on continue en stockant le resultat dans l'accumulateur *)
+  in aux list []  (* Fait appel à "aux" avec list et une liste accumulateur vide *)
 
 (* print_modele : int list option -> unit
    affichage du résultat *)
@@ -47,33 +48,22 @@ let coloriage = [
 
 (* ----------------------------------------------------------- *)
 
-(*Cette fonction supprime tous les elt de la liste list*)
-let remove list elt = 
-  let rec aux l e acc =
-    match l with 
-    |[] -> acc
-    |x::xl -> if x = elt then aux xl e acc else aux xl e acc@[x]
-  in aux list elt []
-
 (* simplifie : int -> int list list -> int list list 
    applique la simplification de l'ensemble des clauses en mettant
    le littéral l à vrai.
-
-   Explication :
-   Si le littéral l est vrai et qu'elle se trouve dans une clause de l'ensemble alors on supprime la clause
-   car celle-ci sera égale à a, si ca -l se trouve dans une clause de l'ensemble alors on supprime le littéral de la clause 
-   sinon on ne fait rien. On répéte cette action pour l'ensemble des clause *)
-let simplifie (l:int) (clauses:int list list) : int list list =
-  let rec aux l clauses (acc:int list list) = 
-    match clauses with 
-    |[] -> acc
-    |x::xl -> let negate = -1*l in 
-              if List.mem l x
-                then aux l xl acc 
-                else if List.mem negate x  
-                    then aux l xl (acc@[remove x l]) 
-                    else aux l xl acc@[x]
-    in aux l clauses []
+   *)
+let simplifie (l : int) (clauses : int list list) : int list list =
+  let filter_clause c =     (* On va simplifier chaque clause de notre formule *)
+    if List.mem l c then None  (* Si le littéral l apparaît dans clause, il faut supprimer la clause de la formule, on renvoie None -> la clause ne sera donc pas stockée dans la liste retournée par filter_map *)
+    else 
+      Some(
+        let verif x =  (* On gère le cas où il faut seulement supprimer not(l) de la clause, ici "x" va représenter chaque littéral de la clause "c" *)
+        if x <> (-l)    (* On vérifie la valeur de "x" *)
+          then Some(x)  (* Si x différent de not(l), aucun soucis, on garde x dans notre clause *)
+          else None     (* Si x = not(l), il faut le retirer de notre clause, on renvoie donc None pour que filter_map ne stock pas "x" dans sa liste retournée *)
+        in (filter_map verif c)   (* Appel à filter_map *)
+        ) 
+  in filter_map filter_clause (clauses)    (* On fait appel à filter_map avec notre fonction auxiliaire filter_clause ainsi que notre formule *)
 
 (* solveur_split : int list list -> int list -> int list option
    exemple d'utilisation de `simplifie' *)
@@ -98,75 +88,66 @@ let rec solveur_split clauses interpretation =
 (* solveur dpll récursif *)
 (* ----------------------------------------------------------- *)
 
-(*
-(*Cette fonction recupere chaque littéral dans une clause, la liste renvoyé ne contient aucun doublon*)
-let recupererLitterauxInClause l = 
-  let rec aux (liste:int list) (acc:int list) =
-    match liste with 
-    |[] -> acc
-    |x::xl -> if List.mem x acc then aux xl acc else aux xl acc@[x]
-  in aux l []
-
-(*Cette fonction recupere tous les littéraux de l'ensemble de clause, la liste renvoyé ne contient aucun doublon*)
-let recupererLitteral clauses =
-  let rec aux clauses acc = 
-    match clauses with 
-    |[] -> acc
-    |x::xl -> aux xl acc@recupererLitterauxInClause x
-  in aux clauses []
-
-(* Cette fonction renvoie un liste l ,tel que pour chaque e appartenant à l alors -e n'appartient pas à l*)
-let recupererLitteralUnitaire clauses =
-  let rec recuppererLitterauxNonUnitaire liste acc =
-    match liste with
-    |[] -> acc 
-    |x::xl -> if List.mem x clauses && List.mem (-1*x) clauses
-                then recuppererLitterauxNonUnitaire xl acc 
-                else recuppererLitterauxNonUnitaire xl acc@[x]
-    in recuppererLitterauxNonUnitaire clauses []
-
-  *)
-
-(* pur : int list list -> int
+(* pur : int list list -> int option
     - si `clauses' contient au moins un littéral pur, retourne "Some" de ce littéral ;
     - sinon, None *)
 let pur (clauses : int list list) : int option =
-  let rec aux l =
-    match l with 
-    | [] -> None
-    | x::x1 -> 
-      if not (List.mem (-x) x1)
-        then (Some x)
-        else aux x1
-  
-  in aux (List.flatten(clauses))
+  let rec trouve allLiteral doublons =   (* On va chercher si un littéral apparait purement dans la formule (allLiteral) en faisant attention aux doublons *)
+    match allLiteral with 
+    | [] -> None          (* On est arrivé à la fin -> pas d'éléments pur *)
+    | x::x1 ->      (* On va vérifier si x est pur *)
+    if List.mem(abs(x)) doublons then trouve x1 doublons  (* Si x ou -x appartient à doublons, pas besoin de chercher, on passe à la suite (sans rajouter x à doublons vu qu'il y est déjà) *)
+    else
+      if List.mem(-x) x1 then trouve x1 (x::doublons)   (* Si x ou -x n'appartient pas à doublons, mais que -x apparait par la suite, x n'est donc pas pur, on continue en ajoutant x à doublons *)
+      else Some x   (* Sinon, x est pur, on le renvoie *)
+  in trouve (List.flatten(clauses)) []        (* On fait appel à la fonction auxiliaire *)
+
+(*
+Pourquoi verifier si abs(x) apparait dans doublons et pas autrement ?
+
+Notre liste "doublons" va contenir les litteraux non-pur qu'on aura verifiés auparavant.
+Sauf que si x n'est pas pur, alors not(x) n'est pas pur également. Donc au lieu de ralonger la taille de la liste "doublons",
+en ajoutant x et not(x) à chaque fois, autant rajouter seulement l'un des deux (le premier qui a été vérifier),
+et faire appel à abs(x) pour converger les deux cas en un seul cas.
+
+On aurait donc très bien pu, à chaque fois rajouter x et not(x) dans la liste "doublons" et vérifier si List.mem(x) (sans abs()).
+Mais la taille de "doublons" aura doublée, donc + de recherche.
+*)
                 
-(* unitaire : int list list -> int
+(* unitaire : int list list -> int option
     - si `clauses' contient au moins une clause unitaire, retourne
       "Some" du littéral de cette clause unitaire ;
     - sinon, None *)
-let rec unitaire (clauses : int list list) : int option =
-  match clauses with 
-  |[] -> None
-  |x::xl -> if List.length x = 1 then Some (List.hd x) else unitaire xl
+let unitaire (clauses : int list list) : int option =
+    try Some (List.hd (List.find (fun c -> List.length c = 1) clauses)) with  (* On cherche la première clause de longueur 1 pour renvoyer le littéral à l'intérieur *)
+    | _ -> None   (* S'il y en a pas, on renvoie None *)
+
 
 (* solveur_dpll_rec : int list list -> int list -> int list option *)
 let rec solveur_dpll_rec (clauses : int list list) (interpretation : int list) : int list option =
-  (* l'ensemble vide de clauses est satisfiable *)
-  if clauses = [] then Some interpretation else
-  (* un clause vide est insatisfiable *)
-  if List.mem [] clauses then None else
-    match unitaire clauses with
-    | Some u -> solveur_dpll_rec (simplifie u clauses) (u :: interpretation)
-    | None ->
-      match pur clauses with
-      | Some p -> solveur_dpll_rec (simplifie p clauses) (p :: interpretation)
-      | None -> 
-        let l = List.hd (List.hd clauses) in
-        let branche = solveur_dpll_rec (simplifie l clauses) (l :: interpretation) in
+  if clauses = [] then Some interpretation else     (* La formule est un ensemble vide -> satisfaisable *)
+  if List.mem [] clauses then None else      (* Il existe au moins une clause vide -> non-satisfaisable *)
+    match unitaire clauses with     (* On verifie s'il y a une clause unitaire *)
+    | Some u -> solveur_dpll_rec (simplifie u clauses) (u :: interpretation)  (* Si oui, on continue le DPLL avec une formule simplifiée par le littéral dans la clause unitaire *)
+    | None ->   (* Sinon, on continue avec les autres cas *)
+      match pur clauses with      (* On verifie s'il y a un littéral pur *)
+      | Some p -> solveur_dpll_rec (simplifie p clauses) (p :: interpretation)  (* Si oui, on continue le DPLL avec une formule simplifiée par le littéral pur *)
+      | None ->   (* Sinon, on continue avec un branchage *)
+        let l = List.hd (List.hd clauses) in  (* Choix du littéral sur lequel on branche *)
+        let branche = solveur_dpll_rec (simplifie l clauses) (l :: interpretation) in   (* On branche sur ce littéral *)
         match branche with
-        | None -> solveur_dpll_rec (simplifie (-l) clauses) ((-l) :: interpretation)
-        | _ -> branche
+        | None -> solveur_dpll_rec (simplifie (-l) clauses) ((-l) :: interpretation)  (* Si la première branche n'a rien donnée, on branche avec not(litteral) *)
+        | _ -> branche    (* Sinon, on renvoie la première branche *)
+
+(* 
+Question : Pourquoi ne pas vérifier "pur" avant "unitaire" ? 
+
+On sait bien que la fonction unitaire est plus efficace/rapide que la fonction pur.
+Et lors du DPLL, on peut très bien arriver à un cas où le premier littéral pur est dans une clause unitaire.
+Donc autant faire disparaitre ce litteral avec la fonction unitaire qui sera bien plus rapide que la fonction pur.
+
+(PS : intervertir l'ordre d'appel entre "pur" et "unitaire" ne change rien au résultat final)
+*)
 
 
 (* tests *)
