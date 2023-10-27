@@ -57,11 +57,11 @@ let simplifie (l : int) (clauses : int list list) : int list list =
     if List.mem (l:int) (c:int list) then None  (* Si le littéral l apparaît dans clause, il faut supprimer la clause de la formule, on renvoie None -> la clause ne sera donc pas stockée dans la liste retournée par filter_map *)
     else 
       Some(
-        let verif x =  (* On gère le cas où il faut seulement supprimer not(l) de la clause, ici "x" va représenter chaque littéral de la clause "c" *)
+        let filter_opposite x =  (* On gère le cas où il faut seulement supprimer not(l) de la clause, ici "x" va représenter chaque littéral de la clause "c" *)
         if x <> (-l)    (* On vérifie la valeur de "x" *)
           then Some(x)  (* Si x différent de not(l), aucun soucis, on garde x dans notre clause *)
           else None     (* Si x = not(l), il faut le retirer de notre clause, on renvoie donc None pour que filter_map ne stock pas "x" dans sa liste retournée *)
-        in (filter_map verif c)   (* Appel à filter_map *)
+        in (filter_map filter_opposite c)   (* Appel à filter_map *)
         ) 
   in filter_map filter_clause (clauses)    (* On fait appel à filter_map avec notre fonction auxiliaire filter_clause ainsi que notre formule *)
 
@@ -95,10 +95,10 @@ let pur (clauses : int list list) : int option =
   let rec trouve allLiteral doublons =   (* On va chercher si un littéral apparait purement dans la formule (allLiteral) en faisant attention aux doublons *)
     match allLiteral with 
     | [] -> None          (* On est arrivé à la fin -> pas d'éléments pur *)
-    | x::x1 ->      (* On va vérifier si x est pur *)
-    if List.mem(abs(x)) doublons then trouve x1 doublons  (* Si x ou -x appartient à doublons, pas besoin de chercher, on passe à la suite (sans rajouter x à doublons vu qu'il y est déjà) *)
+    | x::xs ->      (* On va vérifier si x est pur *)
+    if List.mem(abs(x)) doublons then trouve xs doublons  (* Si abs(x) appartient à doublons, pas besoin de chercher, on passe à la suite (sans rajouter x à doublons vu que abs(x) y est déjà), pas besoin de savoir si x est négatif ou non *)
     else
-      if List.mem(-x) x1 then trouve x1 (abs(x)::doublons)   (* Si x ou -x n'appartient pas à doublons, mais que -x apparait par la suite, x n'est donc pas pur, on continue en ajoutant x à doublons *)
+      if List.mem(-x) xs then trouve xs (abs(x)::doublons)   (* Si abs(x) n'appartient pas à doublons, mais que -x apparait par la suite, x n'est donc pas pur, on continue en ajoutant abs(x) à doublons *)
       else Some x   (* Sinon, x est pur, on le renvoie *)
   in trouve (List.flatten(clauses)) []        (* On fait appel à la fonction auxiliaire *)
 
@@ -107,7 +107,7 @@ Pourquoi verifier si abs(x) apparait dans doublons et pas autrement ?
 
 Notre liste "doublons" va contenir les litteraux non-pur qu'on aura verifiés auparavant.
 Sauf que si x n'est pas pur, alors not(x) n'est pas pur également. Donc au lieu de ralonger la taille de la liste "doublons",
-en ajoutant x et not(x) à chaque fois, autant rajouter seulement l'un des deux (le premier qui a été vérifier),
+en ajoutant x et not(x) à chaque fois, autant rajouter seulement la valeur absolue de x,
 et faire appel à abs(x) pour converger les deux cas en un seul cas.
 
 On aurait donc très bien pu, à chaque fois rajouter x et not(x) dans la liste "doublons" et vérifier si List.mem(x) (sans abs()).
