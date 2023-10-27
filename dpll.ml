@@ -53,8 +53,8 @@ let coloriage = [
    le littéral l à vrai.
    *)
 let simplifie (l : int) (clauses : int list list) : int list list =
-  let filter_clause c =     (* On va simplifier chaque clause de notre formule *)
-    if List.mem l c then None  (* Si le littéral l apparaît dans clause, il faut supprimer la clause de la formule, on renvoie None -> la clause ne sera donc pas stockée dans la liste retournée par filter_map *)
+  let filter_clause (c:int list) =     (* On va simplifier chaque clause de notre formule *)
+    if List.mem (l:int) (c:int list) then None  (* Si le littéral l apparaît dans clause, il faut supprimer la clause de la formule, on renvoie None -> la clause ne sera donc pas stockée dans la liste retournée par filter_map *)
     else 
       Some(
         let verif x =  (* On gère le cas où il faut seulement supprimer not(l) de la clause, ici "x" va représenter chaque littéral de la clause "c" *)
@@ -98,7 +98,7 @@ let pur (clauses : int list list) : int option =
     | x::x1 ->      (* On va vérifier si x est pur *)
     if List.mem(abs(x)) doublons then trouve x1 doublons  (* Si x ou -x appartient à doublons, pas besoin de chercher, on passe à la suite (sans rajouter x à doublons vu qu'il y est déjà) *)
     else
-      if List.mem(-x) x1 then trouve x1 (x::doublons)   (* Si x ou -x n'appartient pas à doublons, mais que -x apparait par la suite, x n'est donc pas pur, on continue en ajoutant x à doublons *)
+      if List.mem(-x) x1 then trouve x1 (abs(x)::doublons)   (* Si x ou -x n'appartient pas à doublons, mais que -x apparait par la suite, x n'est donc pas pur, on continue en ajoutant x à doublons *)
       else Some x   (* Sinon, x est pur, on le renvoie *)
   in trouve (List.flatten(clauses)) []        (* On fait appel à la fonction auxiliaire *)
 
@@ -155,6 +155,7 @@ Donc autant faire disparaitre ce litteral avec la fonction unitaire qui sera bie
 (* let () = print_modele (solveur_dpll_rec systeme []) *)
 (* let () = print_modele (solveur_dpll_rec coloriage []) *)
 
+
 let () =
   let clauses = Dimacs.parse Sys.argv.(1) in
-  print_modele (solveur_dpll_rec clauses [])
+  print_modele (solveur_split clauses [])

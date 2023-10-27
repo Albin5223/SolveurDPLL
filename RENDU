@@ -8,9 +8,9 @@ Date limite: 3 novembre 2023, 23h59
 
 Identité
 --------
-Nombre de binôme: **à remplir**
-Nom, prénom 1: **à remplir**
-Nom, prénom 2: **à remplir**
+Nombre de binôme: 42
+Nom, prénom 1: PARIS Albin
+Nom, prénom 2: YAZICI Servan
 
 
 Questions sur votre code
@@ -19,7 +19,7 @@ Questions sur votre code
    et que ensuite `./dpll sudoku-4x4.cnf` donne la réponse attendue (voir
    fichier README) ?
 
-**à remplir**
+Oui ca focntionne bien et donne la réponse attendue
 
 ---
 
@@ -30,7 +30,10 @@ Questions sur votre code
    - Si non, expliquez en quelques phrases en français comment
      fonctionne votre implémentation de `simplifie`.
 
-**à remplir**
+
+oui on a utilisé filter_map.
+Filter_map prend une fonction f, et une liste l et renvoie une nouvelle liste l' qui correspond à la liste tq pour tout x appartenant à l' f x -> Some(_).
+On se sert de filter_map pour supprimer les clauses qui contiennent le litteral l mis en paramètre, et pour aussi pour supprimer -l dans les autres clauses.
 
 ---
 
@@ -43,7 +46,8 @@ Questions sur votre code
    comment ces fonctions auxiliaires sont utilisées dans votre
    implémentation de la fonction `unitaire`.
 
-**à remplir**
+Pour unitaire, on se sert de la fonction List.length, List.hd, List.find. On sait qu'un littéral est unitaire, si la clause à laquelle il appartient est de longueur 1. Donc avec List.find, on cherche une sous-liste qui a une longueur 1 puis avec List.hd on renvoie le premier élément.
+Si find ne trouve pas de sous-liste qui correspodn à la condition alors, il renvoie une erreur qu'on try catch
 
 ---
 
@@ -52,7 +56,23 @@ Questions sur votre code
    quelques phrases en français comment ces fonctions auxiliaires sont
    utilisées dans votre implémentation de la fonction `pur`.
 
-**à remplir**
+Pour l'implémentation de pur, on utilise une fonction auxiliaire récursive terminale appelé trouve. Elle possède 2 listes en argument
+Alors dans un premier temps on utilise List.flatten pour obtenir une int list a la place d'une int list list.
+Cette int list correcpond à l'ensemble des littéraux présents dans la CNF, cette liste contient des doublons. Pour la suite de l'explication, nommons cette liste allLiteral.
+On a aussi une deuxieme liste nommé doublons qui correspond au la valeur absolue de littéraux non pur. On ne prend que la valeur absolue carsi -l n'est pas pur alors l ne l'est pas non plus. Au début cette liste est vide
+
+On va parcourir la liste allLiteral récursivement
+Si la liste allLiteral est vide alors on renvoie None car cela signifie qu'il n'y a pas de littéral pur.
+Si la liste est de la forme x::xs où x est l'entier au début de la liste et xs la liste représentant allLiteral sans le premier elément.
+
+Donc si la valeur absolue de x appartient aux doublons alors on lance la récursion mais cette fois avec en appelant trouve avec en premier argument xs (la suite de la liste) et en deuxième argument doublons.
+Si x n'est pas dans la liste des doublons alors on vérifie si -x n'appartient pas à la suite de la liste.
+Si c'est le cas alors on renvoie Some(x) ce qui signifie que x est pur (Rappelons qu'un littéral est pur dans une CNF si -x n'appartient à cette même CNF.)
+Sinon, -x appartient à la suite de la liste donc on rajoute la valeur absolue de -x à la liste de doublons.
+
+On se sert de la valeur absolue pour diviser la tailler de la liste de doublons par 2.
+Sinon cette liste va contenir x et -x à la fois ce qui est inutile.
+
 
 ---
 
@@ -60,13 +80,18 @@ Questions sur votre code
    `solveur_split` et `solveur_dpll_rec` ont un comportement
    différent, et expliquez les différences entre ces deux fonctions.
 
-**à remplir**
+Prenons l'exemple de la formule présente dans le fichier SAT/ii8a2.cnf
+Dans un premier les résultats obtenus sont les mêmes. La différence est sur la durée d'attente pour la réponse. En effet avec solveur_dpll_rec le temps d'attente est presque inexistant alors que pour le solveur_split il faut attendre très longtemps avant d'obtenir une réponse (>15 min). 
+
+Cette différence s'explique par le fait que solveur_split ne fait aucune stratégie, elle choisit toujours de simplifier la CNF par le premier littéral. Cette fonction va parcourir entrièrement l'arbre des possibilités. 
+Alors que solveur_dpll_rec va commencer par siplifier par les clauses unitaires, puis les litteraux purs puis ensuite va choisir le premier littéral qu'elle trouve.
 
 ---
 
 5. Avez-vous d'autres remarques sur votre rendu ? (question optionnelle)
 
-**à remplir**
+N'hésitez pas à lire les commentaires dans le fichier "dpll.ml.
+Il y a certaines explications concernant notre façon d'implémenter des morceaux de code.
 
 ---
 
